@@ -3,25 +3,19 @@
 
 <head>
     <title>Parse Google Spreadsheet with JavaScript</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script type="text/javascript">
-        var spData = null;
-        var sheetUrl = null;
+        const apiKey = 'YOUR_API_KEY'; // Replace with your API key
+        const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Replace with your spreadsheet ID
 
-        function doData(json) {
-            spData = json.feed.entry;
-            // Call readData when the data is ready
-            readData($("#data"));
-        }
+        function fetchData() {
+            const range = 'Sheet1'; // Adjust the range as needed
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
 
-        function fetchData(url) {
-            $.ajax({
-                url: url,
-                dataType: "jsonp",
-                success: doData,
-                error: function () {
-                    alert("Failed to load data. Please check the URL.");
-                }
+            $.getJSON(url, function(data) {
+                readData($("#data"), data.values);
+            }).fail(function() {
+                alert("Failed to load data. Please check the URL and your API key.");
             });
         }
 
@@ -47,33 +41,18 @@
             return table;
         }
 
-        function readData(parent) {
-            if (!spData) return;
+        function readData(parent, data) {
+            if (!data) return;
             var table = drawTable(parent);
-            var rowData = [];
 
-            for (var r = 0; r < spData.length; r++) {
-                var cell = spData[r]["gs$cell"];
-                var val = cell["$t"];
-                if (cell.col == 1 && rowData.length > 0) {
-                    drawRow(table, rowData);
-                    rowData = [];
-                }
-                rowData.push(val);
-            }
-            if (rowData.length > 0) {
-                drawRow(table, rowData);
+            for (var r = 0; r < data.length; r++) {
+                drawRow(table, data[r]);
             }
         }
 
         $(document).ready(function() {
             $("#loadData").click(function() {
-                var url = $("#sheetUrl").val();
-                if (url) {
-                    fetchData(url);
-                } else {
-                    alert("Please enter a valid URL.");
-                }
+                fetchData();
             });
         });
     </script>
