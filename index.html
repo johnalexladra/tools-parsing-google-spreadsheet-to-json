@@ -9,6 +9,8 @@
 
         function doData(json) {
             spData = json.feed.entry;
+            // Call readData when the data is ready
+            readData($("#data"));
         }
 
         function drawCell(tr, val) {
@@ -19,14 +21,12 @@
         }
 
         function drawRow(table, rowData) {
-            if (rowData == null) return null;
-            if (rowData.length == 0) return null;
+            if (rowData == null || rowData.length == 0) return;
             var tr = $("<tr/>");
             table.append(tr);
             for (var c = 0; c < rowData.length; c++) {
                 drawCell(tr, rowData[c]);
             }
-            return tr;
         }
 
         function drawTable(parent) {
@@ -36,24 +36,23 @@
         }
 
         function readData(parent) {
-            var data = spData;
+            if (!spData) return;
             var table = drawTable(parent);
             var rowData = [];
 
-            for (var r = 0; r < data.length; r++) {
-                var cell = data[r]["gs$cell"];
+            for (var r = 0; r < spData.length; r++) {
+                var cell = spData[r]["gs$cell"];
                 var val = cell["$t"];
-                if (cell.col == 1) {
+                if (cell.col == 1 && rowData.length > 0) {
                     drawRow(table, rowData);
                     rowData = [];
                 }
                 rowData.push(val);
             }
-            drawRow(table, rowData);
+            if (rowData.length > 0) {
+                drawRow(table, rowData);
+            }
         }
-        $(document).ready(function() {
-            readData($("#data"));
-        });
     </script>
     <script src="https://spreadsheets.google.com/feeds/cells/1eLuYSUbzx9Fx-DYYzxGeB_SUdRDc_XOrHgorAjKLK6I/od6/public/values?alt=json-in-script&callback=doData"></script>
     <style type="text/css">
@@ -109,7 +108,7 @@
 
 <body>
     <h1>Parse Google Spreadsheet with JavaScript</h1>
-    <div id="data" /></div>
+    <div id="data"></div>
 </body>
 
 </html>
