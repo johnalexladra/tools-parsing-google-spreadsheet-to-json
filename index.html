@@ -6,11 +6,23 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script type="text/javascript">
         var spData = null;
+        var sheetUrl = null;
 
         function doData(json) {
             spData = json.feed.entry;
             // Call readData when the data is ready
             readData($("#data"));
+        }
+
+        function fetchData(url) {
+            $.ajax({
+                url: url,
+                dataType: "jsonp",
+                success: doData,
+                error: function () {
+                    alert("Failed to load data. Please check the URL.");
+                }
+            });
         }
 
         function drawCell(tr, val) {
@@ -53,8 +65,18 @@
                 drawRow(table, rowData);
             }
         }
+
+        $(document).ready(function() {
+            $("#loadData").click(function() {
+                var url = $("#sheetUrl").val();
+                if (url) {
+                    fetchData(url);
+                } else {
+                    alert("Please enter a valid URL.");
+                }
+            });
+        });
     </script>
-    <script src="https://spreadsheets.google.com/feeds/cells/1eLuYSUbzx9Fx-DYYzxGeB_SUdRDc_XOrHgorAjKLK6I/od6/public/values?alt=json-in-script&callback=doData"></script>
     <style type="text/css">
         table {
             border-collapse: collapse;
@@ -108,6 +130,11 @@
 
 <body>
     <h1>Parse Google Spreadsheet with JavaScript</h1>
+    <div>
+        <label for="sheetUrl">Google Sheets URL:</label>
+        <input type="text" id="sheetUrl" placeholder="Enter Google Sheets URL">
+        <button id="loadData">Load Data</button>
+    </div>
     <div id="data"></div>
 </body>
 
