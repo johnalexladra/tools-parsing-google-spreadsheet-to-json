@@ -2,99 +2,49 @@
 <html>
 
 <head>
-    <title>Parse Google Spreadsheet with JavaScript</title>
+    <title>Parse Data with JavaScript</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script type="text/javascript">
-        const apiKey = 'YOUR_API_KEY'; // Replace with your API key
-        const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Replace with your spreadsheet ID
-
-        function fetchData() {
-            const range = 'Sheet1'; // Adjust the range as needed
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
-
-            $.getJSON(url, function(data) {
-                readData($("#data"), data.values);
-            }).fail(function() {
-                alert("Failed to load data. Please check the URL and your API key.");
-            });
-        }
-
-        function drawCell(tr, val) {
-            var td = $("<td/>");
-            tr.append(td);
-            td.append(val);
-            return td;
-        }
-
-        function drawRow(table, rowData) {
-            if (rowData == null || rowData.length == 0) return;
-            var tr = $("<tr/>");
-            table.append(tr);
-            for (var c = 0; c < rowData.length; c++) {
-                drawCell(tr, rowData[c]);
-            }
-        }
-
-        function drawTable(parent) {
-            var table = $("<table/>");
-            parent.append(table);
-            return table;
-        }
-
-        function readData(parent, data) {
-            if (!data) return;
-            var table = drawTable(parent);
-
-            for (var r = 0; r < data.length; r++) {
-                drawRow(table, data[r]);
-            }
-        }
-
-        $(document).ready(function() {
-            $("#loadData").click(function() {
-                fetchData();
-            });
-        });
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style type="text/css">
         table {
             border-collapse: collapse;
             width: 100%;
         }
-        
+
         th,
         td {
             border: thin solid black;
             padding: 3px;
         }
-        
+
         tr.head th,
         tr.head td {
             background-color: #EDEDED;
             border-bottom: 4px double black;
         }
-        
+
         span.linetitle {
             font-weight: bold;
         }
-        
+
         div.lineclass {
             font-style: italic;
         }
-        
+
         .title,
         .result {
             width: 80%;
         }
-        
+
         .notes {
             width: 15%;
         }
-        
+
         h1 {
             text-align: center;
         }
-        
+
         body {
             margin: 12px;
             font-size: 12px;
@@ -108,13 +58,89 @@
 </head>
 
 <body>
-    <h1>Parse Google Spreadsheet with JavaScript</h1>
+    <h1>Parse Data with JavaScript</h1>
+
     <div>
         <label for="sheetUrl">Google Sheets URL:</label>
         <input type="text" id="sheetUrl" placeholder="Enter Google Sheets URL">
-        <button id="loadData">Load Data</button>
+        <button id="loadData">Load Data from URL</button>
     </div>
+
+    <div>
+        <label for="fileInput">Upload CSV or XLSX file:</label>
+        <input type="file" id="fileInput" accept=".csv, .xlsx, .xls">
+    </div>
+
     <div id="data"></div>
+
+    <script type="text/javascript">
+        const apiKey = 'YOUR_API_KEY'; // Replace with your API key
+        const spreadsheetId = 'YOUR_SPREADSHEET_ID'; // Replace with your spreadsheet ID
+
+        function readData(parent, data) {
+            const table = $("<table/>");
+            parent.empty().append(table);
+
+            data.forEach(row => {
+                const tr = $("<tr/>");
+                row.forEach(cell => {
+                    $("<td/>").text(cell).appendTo(tr);
+                });
+                table.append(tr);
+            });
+        }
+
+        function handleFile(file) {
+            const fileType = file.type;
+
+            if (fileType === 'text/csv') {
+                Papa.parse(file, {
+                    header: false,
+                    complete: function(results) {
+                        readData($("#data"), results.data);
+                    }
+                });
+            } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileType === 'application/vnd.ms-excel') {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    readData($("#data"), json);
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert("Unsupported file format.");
+            }
+        }
+
+        $(document).ready(function() {
+            $("#fileInput").change(function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    handleFile(file);
+                }
+            });
+
+            $("#loadData").click(function() {
+                const url = $("#sheetUrl").val();
+                if (url) {
+                    const range = 'Sheet1'; // Adjust the range as needed
+                    const fetchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+
+                    $.getJSON(fetchUrl, function(data) {
+                        readData($("#data"), data.values);
+                    }).fail(function() {
+                        alert("Failed to load data. Please check the URL and your API key.");
+                    });
+                } else {
+                    alert("Please enter a valid URL.");
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
